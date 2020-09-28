@@ -1,3 +1,7 @@
+# input historical data for 3 equities and 1 fixed income security
+# monte carlo sim generates random weights to find optimal sharpe ratio
+# Machine Learning sim finds more efficient allocation than monte carlo
+
 import pandas as pd
 import statsmodels.formula.api as smf
 from linearmodels import OLS, IV2SLS 
