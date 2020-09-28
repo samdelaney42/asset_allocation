@@ -9,10 +9,10 @@ import math
 from scipy.optimize import minimize
 
 # import files
-asset_1 = pd.read_csv('FB.csv', index_col = 'Date')
-asset_2 = pd.read_csv('VZ.csv', index_col = 'Date')
-asset_3 = pd.read_csv('CRM.csv', index_col = 'Date')
-risk_free = pd.read_csv('TNX.csv', index_col = 'Date')
+asset_1 = pd.read_csv('NAME', index_col = 'Date')
+asset_2 = pd.read_csv('NAME', index_col = 'Date')
+asset_3 = pd.read_csv('NAME', index_col = 'Date')
+risk_free = pd.read_csv('NAME', index_col = 'Date')
 
 # select only adjusted close
 asset_1 = asset_1[['Adj Close']]
@@ -135,29 +135,6 @@ print(max_sharpe_ratio)
 # add max sharpe ratio point from minimization sim
 plt.scatter(get_ret_vol_sr(opt_results.x)[1], get_ret_vol_sr(opt_results.x)[0], c='green', s=50, edgecolors='black')
 plt.show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
