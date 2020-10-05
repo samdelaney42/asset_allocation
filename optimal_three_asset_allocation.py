@@ -1,7 +1,4 @@
-# input historical data for 3 equities and 1 fixed income security
-# monte carlo sim generates random weights to find optimal sharpe ratio
-# Machine Learning sim finds more efficient allocation than monte carlo
-
+from yahoo_fin import stock_info as si
 import pandas as pd
 import statsmodels.formula.api as smf
 from linearmodels import OLS, IV2SLS 
@@ -11,25 +8,37 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 from scipy.optimize import minimize
+############################################################
 
-# import files
-asset_1 = pd.read_csv('NAME', index_col = 'Date')
-asset_2 = pd.read_csv('NAME', index_col = 'Date')
-asset_3 = pd.read_csv('NAME', index_col = 'Date')
-risk_free = pd.read_csv('NAME', index_col = 'Date')
 
-# select only adjusted close
-asset_1 = asset_1[['Adj Close']]
-asset_2 = asset_2[['Adj Close']]
-asset_3 = asset_3[['Adj Close']]
-risk_free = risk_free[['Adj Close']]
+# choose number of stocks
+# choose sample size
+num_stocks = int(input("Choose number of shares: "))
+trailing_months = int(input("Choose trailing months: "))
+if trailing_months == 12:
+    mos = -365
+else:
+    mos = -183
 
-# asset array
-assets = [asset_1, asset_2, asset_3, risk_free]
+# while loop collects user input tickers and uses yahoo_fin to pull past year data
+# create ticker arry
+# create asset array
+# create portfolio data frame
+count = 0
+tickers = []
+assets = []
+portfolio = pd.DataFrame()
+while count < num_stocks:
+    ticker = input("Enter ticker: ")
+    asset = (si.get_data(ticker)[mos:])[['adjclose']]
+    tickers.append(ticker)
+    assets.append(asset)
+    count += 1
 
-# portfolio data frame
 portfolio = pd.concat(assets, axis=1)
-portfolio.columns = ['asset_1', 'asset_2', 'asset_3', 'risk_free']
+portfolio.columns = tickers
+print(portfolio)
+
 
 
 # MONTE CARLO SIM:
@@ -38,19 +47,19 @@ portfolio.columns = ['asset_1', 'asset_2', 'asset_3', 'risk_free']
 log_returns = np.log(portfolio/portfolio.shift(1))
 
 # weights
-weights = np.array(np.random.random(4))
+weights = np.array(np.random.random(num_stocks))
 weights = weights/np.sum(weights)
 
 # expected returns
 exp_ret = np.sum(log_returns.mean()*weights)*252
 # risk free rate
-rf = float((np.log(risk_free/risk_free.shift(1))).mean()*252)
+rf = ((si.get_data('^tnx')[-1:])[['adjclose']]).iat[0, 0]
 
 # expected volatility
 exp_vol = np.sqrt(np.dot(weights.T,np.dot(log_returns.cov()*252, weights)))
 
 # sharpe ratio
-SR = exp_ret-rf/exp_vol
+SR = (exp_ret-rf)/exp_vol
 
 # set up portfolio optimization variables
 # number of tests
@@ -67,7 +76,7 @@ sharpe_arr = np.zeros(number_of_portfolios)
 # for loop to iterate
 for ind in range(number_of_portfolios):
     #weights
-    weights = np.array(np.random.random(4))
+    weights = np.array(np.random.random(num_stocks))
     weights = weights/np.sum(weights)
 
     # save weight in array
@@ -80,7 +89,7 @@ for ind in range(number_of_portfolios):
     vol_arr[ind] = np.sqrt(np.dot(weights.T,np.dot(log_returns.cov()*252, weights)))
 
     # Sharpe Ratio
-    sharpe_arr[ind] = ret_arr[ind]-rf/vol_arr[ind]
+    sharpe_arr[ind] = (ret_arr[ind]-rf)/vol_arr[ind]
 
 # extract optimal sharpe and weights
 max_sharpe_ratio = sharpe_arr.max()
@@ -110,7 +119,7 @@ def get_ret_vol_sr(weights):
     weights = np.array(weights)
     ret = np.sum(log_returns.mean() * weights)*252
     vol = np.sqrt(np.dot(weights.T,np.dot(log_returns.cov()*252,weights)))
-    sr = ret-rf/vol
+    sr = (ret-rf)/vol
     return np.array([ret, vol, sr])
 
 # this function takes weights and returns second index of above sharpe ratio
@@ -124,9 +133,14 @@ def check_sum(weights):
 # create constraint variable
 # create weight boundaries 0 and 1 are min max respectivley
 # create initial weight guess as starting point
+# use a loop to account for the number of shares users want 
 cons = ({'type':'eq','fun':check_sum})
-bounds = ((0,1),(0,1),(0,1),(0,1))
-init_guess = [0.25, 0.25, 0.25, 0.25]
+bounds = [(0,1)]
+init_guess = [(1/num_stocks)]
+for i in range (num_stocks-1):
+    bounds.append((0,1))
+    init_guess.append(1/num_stocks)
+bounds = tuple(bounds)
 
 # pass all out arguments to minimize function
 opt_results = minimize(neg_sharpe, init_guess, method='SLSQP', bounds=bounds, constraints=cons)
@@ -139,9 +153,7 @@ print(max_sharpe_ratio)
 # add max sharpe ratio point from minimization sim
 plt.scatter(get_ret_vol_sr(opt_results.x)[1], get_ret_vol_sr(opt_results.x)[0], c='green', s=50, edgecolors='black')
 plt.show()
-
-
-
+############################################################################
 
 
 
